@@ -19,9 +19,9 @@ New in V 1.0:
 ## Usage
 
 See pictures
-![](https://github.com/TheDIYGuy999/MPPT_Buck_Converter/blob/master/1.jpg)
-![](https://github.com/TheDIYGuy999/MPPT_Buck_Converter/blob/master/Board.jpg)
-![](https://github.com/TheDIYGuy999/MPPT_Buck_Converter/blob/master/Schematic.pdf)
+![](https://github.com/TheDIYGuy999/MPPT_Buck_Converter_ACS712/blob/master/1.jpg)
+![](https://github.com/TheDIYGuy999/MPPT_Buck_Converter_ACS712/blob/master/Board.jpg)
+![](https://github.com/TheDIYGuy999/MPPT_Buck_Converter_ACS712/blob/master/Schematic.pdf)
 
 
 (c) 2018 TheDIYGuy999
