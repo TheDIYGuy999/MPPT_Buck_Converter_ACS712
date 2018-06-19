@@ -1,9 +1,9 @@
-# This is an ATMEL 32U4 based MPPT Buck Solar Charge controller
+# This is an ATMEL 32U4 based MPPT Buck Solar Charge Controller
 ## Features:
 - Programmable with Arduino IDE
 - Simple MPPT solar charge controller for 18V solar panels
 - Sparkfun Pro Micro 5V, 16MHz
-- ACS712 current sensor on the panel side
+- ACS712 current sensor (5A version) on the panel side
 - Voltage dividers for voltage measurement on panel and output side
 - N-channel mosfet in GND line, freewheel diode, inductor
 - Working frequency 31.5kHz
@@ -15,6 +15,10 @@
 
 New in V 1.0:
 - Initial commit, tested with my 10W and 20W solar panels, charging my DIY USB power bank with 8 18650 cells in parallel.
+
+New in V 1.1:
+- Improved MPPT strategy
+- LED now also indicating controller mode (MPPT mode = volts, otherwise flickering)
 
 ## Usage
 

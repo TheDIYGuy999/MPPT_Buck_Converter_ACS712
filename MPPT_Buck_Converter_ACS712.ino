@@ -9,7 +9,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.0; // Software revision
+const float codeVersion = 1.1; // Software revision
 
 //
 // =======================================================================================================
@@ -55,6 +55,7 @@ float inputPower;
 float inputPowerPrevious;
 float outputVoltage;
 float outputVoltagePrevious;
+boolean mpptMode;
 
 // ACS712 current sensor calibration variables
 const float acs712VoltsPerAmp = 0.185; // 0.185 for 5A version, 100 for 20A, 66 for 30A
@@ -187,14 +188,17 @@ void mppt() {
 
   // Voltage controllers ---------------------------------------------------------------------------------
 
-  // If panel voltage is high enough or output voltage is too high: control target = output voltage! ---
-  if (outputVoltage > (targetOutputVoltage - 0.1) || (inputPower < 0.2) || inputVoltage >= maxPanelVoltage) {
+  // If output voltage is too high or not enough wower to do the MPPT calculations: control target = output voltage! ---
+  //if (outputVoltage > (targetOutputVoltage - 0.1) || (inputPower < 0.2) || inputVoltage >= maxPanelVoltage) {
+  if (outputVoltage > (targetOutputVoltage - 0.2) || (inputPower < 0.2)) {
     pwm += targetOutputVoltage - outputVoltage; // simple p (differential) controller
+    mpptMode = false;
   }
 
-  // if not high enough: control target = MPPT ---
+  // else: control target = MPPT ---
   else {
-   
+    mpptMode = true;
+
     // MPPT (max. output voltage) tracking (upwards / downwards is related to PWM value!)
     static unsigned long lastMppt;
     if (millis() - lastMppt >= 1000) { // Every 1000ms
@@ -207,7 +211,7 @@ void mppt() {
       Serial.println(trackingDownwards);
 
       // Wrong tracking direction (less power than previously), so change it!
-      if (inputPower < inputPowerPrevious) { 
+      if (inputPower < inputPowerPrevious) {
         trackingDownwards = !trackingDownwards;
 
         // Tracking limits
@@ -238,9 +242,14 @@ void mppt() {
 // =======================================================================================================
 //
 void led() {
-
-  // 4 flashes = 14V etc.
-  LED.flash(20, 380, 700, inputVoltage); // ON, OFF, PAUSE, PULSES
+  if (mpptMode) {
+    // Indicate panel voltage: 4 flashes = 14V etc.
+    LED.flash(20, 380, 700, inputVoltage); // ON, OFF, PAUSE, PULSES
+  }
+  else {
+    //Flickering is indicating, that the panels deliver more energy as can be used
+    LED.flash(30, 100, 0, 0);
+  }
 }
 
 //
