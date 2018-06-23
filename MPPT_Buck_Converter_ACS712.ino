@@ -9,7 +9,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.1; // Software revision
+const float codeVersion = 1.2; // Software revision
 
 //
 // =======================================================================================================
@@ -143,10 +143,11 @@ int averageV() { // Input volts
   return average;
 }
 
+// Main sensor read function
 void readSensors() {
   inputVoltage = analogRead(VSENSE_IN) * vcc / 93; // 1023 = vcc * 110 / 10 = 1023 / 55 = 18.6
   //inputCurrent = analogRead(ISENSE_IN);
-  inputCurrent = (averageA() - acs712Offset) * vcc / acs712VoltsPerAmp / 1024; // 5 = Amps range of ACS712
+  inputCurrent = (averageA() - acs712Offset) * vcc / acs712VoltsPerAmp / 1024;
   //if (inputCurrent < 0) inputCurrent = 0;
 
   inputPower = averageV() * inputCurrent;
@@ -190,8 +191,9 @@ void mppt() {
 
   // If output voltage is too high or not enough wower to do the MPPT calculations: control target = output voltage! ---
   //if (outputVoltage > (targetOutputVoltage - 0.1) || (inputPower < 0.2) || inputVoltage >= maxPanelVoltage) {
-  if (outputVoltage > (targetOutputVoltage - 0.2) || (inputPower < 0.2)) {
+  if (outputVoltage > (targetOutputVoltage - 0.3) || (inputPower < 0.2)) {
     pwm += targetOutputVoltage - outputVoltage; // simple p (differential) controller
+    if (inputPower < 0.2) pwm /= 2;
     mpptMode = false;
   }
 
