@@ -7,6 +7,7 @@
 - ACS712 current sensor (5A version) on the panel side
 - Voltage dividers for voltage measurement on panel and output side
 - N-channel mosfet in GND line, freewheel diode, inductor
+- Supplied by the panel voltage, can't drain your battery
 - Working frequency 31.5kHz
 - WARNING! This device is not intended to drive 5V USB devices directly!
 - Always use a regulated 5V USB adapter on the output! Otherwise, voltage glichtes may damage your USB device!
@@ -22,6 +23,10 @@ New in V 1.1:
 
 New in V 1.2:
 - Changed behavior below 0.2W input power
+
+New in V 1.3:
+- MPPT algorithm rewritten
+- The resolution of the ACS712 is still problematic for MPPT tracking
 
 ## Usage
 
