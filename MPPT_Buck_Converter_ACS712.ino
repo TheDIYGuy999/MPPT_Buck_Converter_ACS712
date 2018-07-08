@@ -62,6 +62,7 @@ byte controlMode;
 #define CV 1 // Constant Voltage
 #define CC 2 // Constant Current
 #define MPPT 3 // Maximum Power Point Tracking
+#define BP 3 // Battery protection mode
 
 // ACS712 current sensor calibration variables
 const float acs712VoltsPerAmp = 0.185; // 0.185 for 5A version, 100 for 20A, 66 for 30A
@@ -206,9 +207,15 @@ void mppt() {
   }
 
   // Else If current is above limit: control target = output current! ---
-  else if (outputCurrent > maxOutputCurrent) {
+  else if ((outputCurrent > maxOutputCurrent) && (outputVoltage < targetOutputVoltage)) {
     pwm -= (outputCurrent - maxOutputCurrent);
     controlMode = CC; // Constant Current Mode
+  }
+
+  // Else If current AND voltage are above limit:  ---
+  else if ((outputCurrent > maxOutputCurrent) && (outputVoltage > targetOutputVoltage)) {
+    pwm --;
+    controlMode = BP; // Battery Protection Mode
   }
 
   // else: control target = MPPT ---
@@ -287,6 +294,10 @@ void led() {
   if (controlMode == CC) {
     //Constant current mode (fast flickering)
     LED.flash(30, 50, 0, 0);
+  }
+  if (controlMode == BP) {
+    //Battery protection mode (fast flickering)
+    LED.flash(30, 25, 0, 0);
   }
 }
 
