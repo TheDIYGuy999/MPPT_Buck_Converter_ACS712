@@ -62,7 +62,7 @@ byte controlMode;
 #define CV 1 // Constant Voltage
 #define CC 2 // Constant Current
 #define MPPT 3 // Maximum Power Point Tracking
-#define BP 3 // Battery protection mode
+#define BP 4 // Battery protection mode
 
 // ACS712 current sensor calibration variables
 const float acs712VoltsPerAmp = 0.185; // 0.185 for 5A version, 100 for 20A, 66 for 30A
