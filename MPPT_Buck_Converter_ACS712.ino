@@ -10,7 +10,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.3; // Software revision
+const float codeVersion = 1.4; // Software revision
 
 //
 // =======================================================================================================
@@ -57,7 +57,11 @@ float inputPowerDelta;
 float inputPowerPrevious = 9999.0; // Init value above max. panel power!
 float outputVoltage;
 float outputVoltagePrevious;
-boolean mpptMode;
+float outputCurrent;
+byte controlMode;
+#define CV 1 // Constant Voltage
+#define CC 2 // Constant Current
+#define MPPT 3 // Maximum Power Point Tracking
 
 // ACS712 current sensor calibration variables
 const float acs712VoltsPerAmp = 0.185; // 0.185 for 5A version, 100 for 20A, 66 for 30A
@@ -72,8 +76,10 @@ float vcc = 4.5; // Init value only. Will be read automatically later on
 float minPanelVoltage = 12.0; // 12.0
 float targetPanelVoltage = 14.5; // 14.0 (calculated by MPPT algorithm)
 float maxPanelVoltage = 17.0; // 16.0
-float targetOutputVoltage = 5.5; // 6.0 (a bit above 5V USB voltage for diode drop in USB module!)
+float targetOutputVoltage = 4.15; // 6.0 (a bit above 5V USB voltage for diode drop in USB module!)
 float trackingIncrement = 0.5; // MPPT tracking voltage step 0.5V
+float maxOutputCurrent = 3.0; // the desired output current limit. 3.0A requires heat sink on diode!!
+float efficiency = 0.8; // About 80% (required for output current caltulation
 
 //
 // =======================================================================================================
@@ -145,6 +151,8 @@ void readSensors() {
   inputPower = averageP();
 
   outputVoltage = inputVoltage - (analogRead(VSENSE_OUT) * vcc / 92); // 1023 = vcc * 110 / 10 = 1023 / 55 = 18.6
+
+  outputCurrent = inputCurrent * inputVoltage / outputVoltage * efficiency;
 }
 
 //
@@ -154,7 +162,8 @@ void readSensors() {
 //
 
 void lockout() {
-  analogWrite(PWM, 0); // Switch output off
+  pwm = 0;
+  analogWrite(PWM, pwm); // Switch output off
 #ifdef DEBUG
   Serial.print("Over voltage lockout! ");
   Serial.println(outputVoltage);
@@ -174,7 +183,7 @@ void mppt() {
       - MPPT tracker, if output voltage is below target
   */
 
-  // Read current voltages
+  // Read current voltages and current
   readSensors();
 
   // Panel undervoltage lockout ---------------------------------------------------------------------------
@@ -187,18 +196,24 @@ void mppt() {
     readSensors();
   }
 
-  // Voltage controllers ---------------------------------------------------------------------------------
+  // Voltage and current controllers -----------------------------------------------------------------------
 
-  // If output voltage is too high or not enough power to do the MPPT calculations: control target = output voltage! ---
-  //if (outputVoltage > (targetOutputVoltage - 0.2) || (inputPower < 0.3)) {
-  if (outputVoltage > (targetOutputVoltage - 0.2)) {
+  // If output voltage is near desired voltage: control target = output voltage! ---
+  if (outputVoltage > (targetOutputVoltage - 0.2) && (outputCurrent <= maxOutputCurrent) ) {
     pwm += targetOutputVoltage - outputVoltage; // simple p (differential) controller
-    mpptMode = false;
+    if (inputVoltage < minPanelVoltage) pwm -= minPanelVoltage - inputVoltage;
+    controlMode = CV; // Constant Voltage Mode
+  }
+
+  // Else If current is above limit: control target = output current! ---
+  else if (outputCurrent > maxOutputCurrent) {
+    pwm -= (outputCurrent - maxOutputCurrent);
+    controlMode = CC; // Constant Current Mode
   }
 
   // else: control target = MPPT ---
   else {
-    mpptMode = true;
+    controlMode = MPPT; // Maximum Power Point Tracking
 
     // MPPT (max. input power) tracking direction (upwards / downwards is related to panel voltage!)
     static unsigned long lastMppt;
@@ -210,10 +225,6 @@ void mppt() {
 
       if (trackingDownwards) targetPanelVoltage -= trackingIncrement;
       else targetPanelVoltage += trackingIncrement;
-#ifdef DEBUG
-      Serial.print("MPPT ");
-      Serial.println(trackingDownwards);
-#endif
 
 
       // Tracking direction is depending on the panel voltage, if outside limits!
@@ -265,13 +276,17 @@ void mppt() {
 // =======================================================================================================
 //
 void led() {
-  if (mpptMode) {
+  if (controlMode == MPPT) {
     // Indicate panel voltage: 4 flashes = 14V etc.
     LED.flash(20, 380, 700, inputVoltage); // ON, OFF, PAUSE, PULSES
   }
-  else {
-    //Flickering is indicating, that the panels could deliver more energy as currently can be used
+  if (controlMode == CV) {
+    //Constant voltage mode (flickering)
     LED.flash(30, 100, 0, 0);
+  }
+  if (controlMode == CC) {
+    //Constant current mode (fast flickering)
+    LED.flash(30, 50, 0, 0);
   }
 }
 
@@ -300,7 +315,21 @@ void serialPrint() {
   if (millis() - lastPrint >= 1000) { // Every 1000ms
     lastPrint = millis();
 
-    Serial.print("In T. V: ");
+    // Mode
+    if (controlMode == MPPT) {
+      Serial.print("MPPT ");
+      Serial.print(trackingDownwards);
+    }
+    if (controlMode == CV) {
+      Serial.print("CV   ");
+    }
+
+    if (controlMode == CC) {
+      Serial.print("CC   ");
+    }
+
+    // Input
+    Serial.print("\t In T. V: ");
     Serial.print(targetPanelVoltage);
     Serial.print("\t In V: ");
     Serial.print(inputVoltage);
@@ -311,14 +340,15 @@ void serialPrint() {
     Serial.print("\t Delta Watts: ");
     Serial.print(inputPowerDelta);
 
+    // Output
     Serial.print("\t Out T. V: ");
     Serial.print(targetOutputVoltage);
     Serial.print("\t Out V: ");
     Serial.print(outputVoltage);
+    Serial.print("\t A: ");
+    Serial.print(outputCurrent);
     Serial.print("\t PWM: ");
     Serial.print(pwm);
-    //Serial.print("\t down : ");
-    //Serial.print(trackingDownwards);
     Serial.print("\t vcc: ");
     Serial.println(vcc);
   }

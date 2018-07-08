@@ -7,11 +7,13 @@
 - ACS712 current sensor (5A version) on the panel side
 - Voltage dividers for voltage measurement on panel and output side
 - N-channel mosfet in GND line, freewheel diode, inductor
-- Supplied by the panel voltage, can't drain your battery
+- Supplied by the panel voltage, so it can't drain your battery during the night
 - Working frequency 31.5kHz
-- WARNING! This device is not intended to drive 5V USB devices directly!
+- WARNING! This device is not intended to drive 5V USB devices directly. Do it at your own risk!
 - Always use a regulated 5V USB adapter on the output! Otherwise, voltage glichtes may damage your USB device!
 - WARNING! This controller is COMMON POSITIVE!
+- 3 opertation modes: MPPT, CV, CC allows to charge batteries directly, without an additional charger. Do it at your own risk!!
+- WARNING! Always adjust output voltage and output current limits according to your battery type!!
 
 
 New in V 1.0:
@@ -27,6 +29,12 @@ New in V 1.2:
 New in V 1.3:
 - MPPT algorithm rewritten
 - The resolution of the ACS712 is still problematic for MPPT tracking
+
+New in V 1.4:
+- CC (constant Current) mode added. Allows to charge a lithium battery directly from your solar panel with CV - CC (do it at your own risk!)
+- The output current is calculated depending on input voltage, input current & output voltage, so it is not very accurate.
+- Warning! An anti backfeed diode is not yet implemented!
+- For 3.0A output current limit, the diode requires a heat sink!
 
 ## Usage
 
