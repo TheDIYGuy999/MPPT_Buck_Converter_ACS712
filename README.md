@@ -36,6 +36,10 @@ New in V 1.4:
 - Warning! An anti backfeed diode is not yet implemented!
 - For 3.0A output current limit, the diode requires a heat sink!
 
+New in V 1.5:
+- Diode BYT79 replaced with 5A / 60V Schottky Diode SB560. Efficiency raised from 70% to 82%
+- ACS712 current sensor moved to output side, software changed accordingly. MPPT tracking improved.
+
 ## Usage
 
 See pictures

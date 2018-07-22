@@ -1,6 +1,6 @@
 /* Simple MPPT solar charge controller for 18V solar panels
    Sparkfun Pro Micro 5V, 16MHz
-   ACS712 current sensor on the panel side
+   ACS712 current sensor on the OUTPUT side (changed in V1.5)
    Voltage dividers for voltage measurement on panel and output side
    N-channel mosfet in GND line, freewheel diode, inductor
    Supplied by the panel voltage, can't drain your battery
@@ -10,7 +10,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.4; // Software revision
+const float codeVersion = 1.5; // Software revision
 
 //
 // =======================================================================================================
@@ -44,17 +44,17 @@ statusLED LED(true); // true = inversed
 
 // output pins
 #define PWM 10
-#define ISENSE_IN A2
 #define VSENSE_IN A1
+#define ISENSE_OUT A2
 #define VSENSE_OUT A0
 #define POT A3
 
 // Global variables
 float inputVoltage;
 float inputCurrent;
-float inputPower;
-float inputPowerDelta;
-float inputPowerPrevious = 9999.0; // Init value above max. panel power!
+float outputPower;
+float outputPowerDelta;
+float outputPowerPrevious = 9999.0; // Init value above max. panel power!
 float outputVoltage;
 float outputVoltagePrevious;
 float outputCurrent;
@@ -75,12 +75,13 @@ float vcc = 4.5; // Init value only. Will be read automatically later on
 
 // Configuration variables
 float minPanelVoltage = 12.0; // 12.0
-float targetPanelVoltage = 14.5; // 14.0 (calculated by MPPT algorithm)
-float maxPanelVoltage = 17.0; // 16.0
-float targetOutputVoltage = 4.15; // 6.0 (a bit above 5V USB voltage for diode drop in USB module!)
+float targetPanelVoltage = 14.0; // 14.0 (calculated by MPPT algorithm)
+float maxPanelVoltage = 16.0; // 16.0
+// !!CAUTION: targetOutputVoltage is adjusted with the potentiometer!!
+float targetOutputVoltage = 4.2; // init value only! see above!!
 float trackingIncrement = 0.5; // MPPT tracking voltage step 0.5V
 float maxOutputCurrent = 3.0; // the desired output current limit. 3.0A requires heat sink on diode!!
-float efficiency = 0.8; // About 80% (required for output current caltulation
+float efficiency = 0.82; // About 82% (required for input current calculation)
 
 //
 // =======================================================================================================
@@ -110,11 +111,11 @@ void setup() {
 
 //
 // =======================================================================================================
-// READ POTENTIOMETER (inactive, for testing only)
+// READ POTENTIOMETER (lets you select the voltage range you want)
 // =======================================================================================================
 //
 void readPot() {
-  //minPanelVoltage = analogRead(POT) / 102.3 + 7.0; // 7 - 17V
+  targetOutputVoltage = analogRead(POT) / 1023.0 + 4.2; // 4.2 - 5.2V
 }
 
 //
@@ -124,21 +125,15 @@ void readPot() {
 //
 
 // Averaging subfunctions
-float averageP() { // Input power (running average)
-  static float raw[10];
+float averageA() { // Input power (running average)
+  static float raw[4];
 
-  raw[9] = raw[8];
-  raw[8] = raw[7];
-  raw[7] = raw[6];
-  raw[6] = raw[5];
-  raw[5] = raw[4];
-  raw[4] = raw[3];
   raw[3] = raw[2];
   raw[2] = raw[1];
   raw[1] = raw[0];
-  raw[0] = inputVoltage * inputCurrent;
-  float average = (raw[0] + raw[1] + raw[2] + raw[3] + raw[4] + raw[5] + raw[6] + raw[7] + raw[8] + raw[9]) / 10.0;
-  return inputVoltage * inputCurrent;//average;
+  raw[0] = (analogRead(ISENSE_OUT) - acs712Offset) * vcc / acs712VoltsPerAmp / 1024;
+  float average = (raw[0] + raw[1] + raw[2] + raw[3]) / 4.0;
+  return average;
 }
 
 
@@ -147,13 +142,13 @@ void readSensors() {
 
   inputVoltage = analogRead(VSENSE_IN) * vcc / 93; // 1023 = vcc * 110 / 10 = 1023 / 55 = 18.6
 
-  inputCurrent = (analogRead(ISENSE_IN) - acs712Offset) * vcc / acs712VoltsPerAmp / 1024;
+  outputCurrent = averageA();
 
-  inputPower = averageP();
+  outputPower = outputVoltage * outputCurrent;
 
   outputVoltage = inputVoltage - (analogRead(VSENSE_OUT) * vcc / 92); // 1023 = vcc * 110 / 10 = 1023 / 55 = 18.6
 
-  outputCurrent = inputCurrent * inputVoltage / outputVoltage * efficiency;
+  inputCurrent = outputCurrent * outputVoltage / inputVoltage / efficiency;
 }
 
 //
@@ -179,8 +174,9 @@ void lockout() {
 void mppt() {
 
   /* MPPT Strategy:
-      There are two controllers:
+      There are tree controllers:
       - Output voltage controller
+      - Output current controller
       - MPPT tracker, if output voltage is below target
   */
 
@@ -188,8 +184,9 @@ void mppt() {
   readSensors();
 
   // Panel undervoltage lockout ---------------------------------------------------------------------------
-  while (outputVoltage < 3.0 && inputVoltage < 15.0) {  // 3.0 15.0
-    analogWrite(PWM, 0);
+  while (outputVoltage < 0.5 && inputVoltage < 15.0) {  // 1.5 15.0
+    pwm = 0;
+    analogWrite(PWM, pwm);
     LED.on();
     Serial.println("Panel undervoltage, waiting for more sun...");
     delay(2000);
@@ -206,13 +203,13 @@ void mppt() {
     controlMode = CV; // Constant Voltage Mode
   }
 
-  // Else If current is above limit: control target = output current! ---
+  // Else if current only is above limit: control target = output current! ---
   else if ((outputCurrent > maxOutputCurrent) && (outputVoltage < targetOutputVoltage)) {
-    pwm -= (outputCurrent - maxOutputCurrent);
+    pwm -= outputCurrent - maxOutputCurrent;
     controlMode = CC; // Constant Current Mode
   }
 
-  // Else If current AND voltage are above limit:  ---
+  // Else if current AND voltage are above limit: decrease PWM ---
   else if ((outputCurrent > maxOutputCurrent) && (outputVoltage > targetOutputVoltage)) {
     pwm --;
     controlMode = BP; // Battery Protection Mode
@@ -228,7 +225,7 @@ void mppt() {
       lastMppt = millis();
 
       // Calculate power delta
-      inputPowerDelta = inputPower - inputPowerPrevious;
+      outputPowerDelta = outputPower - outputPowerPrevious;
 
       if (trackingDownwards) targetPanelVoltage -= trackingIncrement;
       else targetPanelVoltage += trackingIncrement;
@@ -250,13 +247,13 @@ void mppt() {
 
       else { // if within voltage limits, search for maximum power point!
         // Wrong tracking direction (less power than previously), so change it!
-        if (inputPowerDelta < 0.0) { // 0.03A current sensor step * 20V = 0.6W
+        if (outputPowerDelta < 0.1) { // 0.03A current sensor step * 20V = 0.6W
           trackingDownwards = !trackingDownwards;
         }
       }
 
       // Store previous power for next comparison
-      inputPowerPrevious = inputPower;
+      outputPowerPrevious = outputPower;
     }
 
     // Calculate deviation
@@ -284,7 +281,7 @@ void mppt() {
 //
 void led() {
   if (controlMode == MPPT) {
-    // Indicate panel voltage: 4 flashes = 14V etc.
+    // Indicate panel voltage: 14 flashes = 14V etc.
     LED.flash(20, 380, 700, inputVoltage); // ON, OFF, PAUSE, PULSES
   }
   if (controlMode == CV) {
@@ -296,7 +293,7 @@ void led() {
     LED.flash(30, 50, 0, 0);
   }
   if (controlMode == BP) {
-    //Battery protection mode (fast flickering)
+    //Battery protection mode (very fast flickering)
     LED.flash(30, 25, 0, 0);
   }
 }
@@ -339,6 +336,10 @@ void serialPrint() {
       Serial.print("CC   ");
     }
 
+    if (controlMode == BP) {
+      Serial.print("BP   ");
+    }
+
     // Input
     Serial.print("\t In T. V: ");
     Serial.print(targetPanelVoltage);
@@ -346,10 +347,7 @@ void serialPrint() {
     Serial.print(inputVoltage);
     Serial.print("\t A: ");
     Serial.print(inputCurrent);
-    Serial.print("\t W: ");
-    Serial.print(inputPower);
-    Serial.print("\t Delta Watts: ");
-    Serial.print(inputPowerDelta);
+   
 
     // Output
     Serial.print("\t Out T. V: ");
@@ -358,6 +356,10 @@ void serialPrint() {
     Serial.print(outputVoltage);
     Serial.print("\t A: ");
     Serial.print(outputCurrent);
+    Serial.print("\t W: ");
+    Serial.print(outputPower);
+    Serial.print("\t Delta W: ");
+    Serial.print(outputPowerDelta);
     Serial.print("\t PWM: ");
     Serial.print(pwm);
     Serial.print("\t vcc: ");
