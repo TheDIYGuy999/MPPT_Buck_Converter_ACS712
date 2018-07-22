@@ -4,7 +4,7 @@
 - Simple MPPT (Maximum Power Point Tracking) solar charge controller for 18V solar panels
 - Proper buck converter topology, which increases the current on the output side, not just PWM
 - Sparkfun Pro Micro 5V, 16MHz
-- ACS712 current sensor (5A version) on the panel side
+- ACS712 current sensor (5A version) on the output side (changed in V1.5)
 - Voltage dividers for voltage measurement on panel and output side
 - N-channel mosfet in GND line, freewheel diode, inductor
 - Supplied by the panel voltage, so it can't drain your battery during the night
