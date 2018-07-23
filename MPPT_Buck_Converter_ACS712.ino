@@ -1,5 +1,6 @@
 /* Simple MPPT solar charge controller for 18V solar panels
-   Sparkfun Pro Micro 5V, 16MHz
+   Sparkfun Pro Micro 5V, 16MHz or 3.3V, 8MHz (3.3v recommended, more efficient)
+   Also compatible with Arduino Pro Mini 3.3V, 8MHz or 5V, 16MHz
    ACS712 current sensor on the OUTPUT side (changed in V1.5)
    Voltage dividers for voltage measurement on panel and output side
    N-channel mosfet in GND line, freewheel diode, inductor
@@ -10,7 +11,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.5; // Software revision
+const float codeVersion = 1.6; // Software revision
 
 //
 // =======================================================================================================
@@ -103,7 +104,11 @@ void setup() {
   pinMode(PWM, OUTPUT);
 
   // LED setup
+#ifdef __AVR_ATmega32U4__ // Pro Micro Board
   LED.begin(17); // Onboard LED on pin 17
+#else // Pro Mini Board
+  LED.begin(13); // Onboard LED on pin 17
+#endif
 
   // switch off output
   analogWrite(PWM, 0);
@@ -184,7 +189,7 @@ void mppt() {
   readSensors();
 
   // Panel undervoltage lockout ---------------------------------------------------------------------------
-  while (outputVoltage < 0.5 && inputVoltage < 15.0) {  // 1.5 15.0
+  while (outputVoltage < 1.0 && inputVoltage < 15.0) {  // 1.5 15.0
     pwm = 0;
     analogWrite(PWM, pwm);
     LED.on();
@@ -347,7 +352,7 @@ void serialPrint() {
     Serial.print(inputVoltage);
     Serial.print("\t A: ");
     Serial.print(inputCurrent);
-   
+
 
     // Output
     Serial.print("\t Out T. V: ");

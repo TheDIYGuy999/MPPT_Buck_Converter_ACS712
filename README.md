@@ -3,7 +3,8 @@
 - Programmable with Arduino IDE
 - Simple MPPT (Maximum Power Point Tracking) solar charge controller for 18V solar panels
 - Proper buck converter topology, which increases the current on the output side, not just PWM
-- Sparkfun Pro Micro 5V, 16MHz
+- Sparkfun Pro Micro 5V, 16MHz or 3.3V, 8MHz (3.3v recommended, more efficient)
+- Also compatible with Arduino Pro Mini 3.3V, 8MHz or 5V, 16MHz
 - ACS712 current sensor (5A version) on the output side (changed in V1.5)
 - Voltage dividers for voltage measurement on panel and output side
 - N-channel mosfet in GND line, freewheel diode, inductor
@@ -31,7 +32,7 @@ New in V 1.3:
 - The resolution of the ACS712 is still problematic for MPPT tracking
 
 New in V 1.4:
-- CC (constant Current) mode added. Allows to charge a lithium battery directly from your solar panel with CV - CC (do it at your own risk!)
+- CC (Constant Current) mode added. Allows to charge a lithium battery directly from your solar panel with CV - CC (do it at your own risk!)
 - The output current is calculated depending on input voltage, input current & output voltage, so it is not very accurate.
 - Warning! An anti backfeed diode is not yet implemented!
 - For 3.0A output current limit, the diode requires a heat sink!
@@ -39,6 +40,11 @@ New in V 1.4:
 New in V 1.5:
 - Diode BYT79 replaced with 5A / 60V Schottky Diode SB560. Efficiency raised from 70% to 82%
 - ACS712 current sensor moved to output side, software changed accordingly. MPPT tracking improved.
+
+New in V 1.6:
+- Mosfet STP35NF10 replaced with Logic Level compatible IRLZ44NPBF. Allows to use 3.3V MCU
+- A 3.3V, 8MHz MCU is now recommended, because it uses significantly less current
+- Code for Arduino Pro Mini support added
 
 ## Usage
 
