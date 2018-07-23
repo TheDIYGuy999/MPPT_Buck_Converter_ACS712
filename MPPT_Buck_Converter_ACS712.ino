@@ -11,7 +11,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.6; // Software revision
+const float codeVersion = 1.61; // Software revision
 
 //
 // =======================================================================================================
@@ -41,7 +41,11 @@ const float codeVersion = 1.6; // Software revision
 //
 
 // Status LED objects
-statusLED LED(true); // true = inversed
+#ifdef __AVR_ATmega32U4__ // Pro Micro Board
+statusLED LED(true); // true = inversed (LED wired between VCC and output)
+#else // Pro Mini Board
+statusLED LED(false); // false = not inversed (LED wired between GND and output)
+#endif
 
 // output pins
 #define PWM 10

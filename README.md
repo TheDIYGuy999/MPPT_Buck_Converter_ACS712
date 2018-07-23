@@ -1,4 +1,4 @@
-# This is an ATMEL 32U4 based MPPT Buck Solar Charge Controller
+# This is an Atmega 238P / 32U4 based MPPT Buck Solar Charge Controller
 ## Features:
 - Programmable with Arduino IDE
 - Simple MPPT (Maximum Power Point Tracking) solar charge controller for 18V solar panels
@@ -45,6 +45,10 @@ New in V 1.6:
 - Mosfet STP35NF10 replaced with Logic Level compatible IRLZ44NPBF. Allows to use 3.3V MCU
 - A 3.3V, 8MHz MCU is now recommended, because it uses significantly less current
 - Code for Arduino Pro Mini support added
+
+New in V 1.61:
+- LED was inversed on Atmega 328P platform (Pro Mini)
+- Tested @ full 3.0A load with new diode and mosfet
 
 ## Usage
 
