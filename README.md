@@ -50,6 +50,9 @@ New in V 1.61:
 - LED was inversed on Atmega 328P platform (Pro Mini)
 - Tested @ full 3.0A load with new diode and mosfet
 
+New in V 1.62:
+- ACS712 scaling bug fixed for 3.3V MCU. 3.3V supply is outside datasheet range, but seems to work fine...
+
 ## Usage
 
 See pictures

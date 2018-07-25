@@ -11,7 +11,7 @@
    WARNING! This controller is COMMON POSITIVE!
 */
 
-const float codeVersion = 1.61; // Software revision
+const float codeVersion = 1.62; // Software revision
 
 //
 // =======================================================================================================
@@ -70,8 +70,13 @@ byte controlMode;
 #define BP 4 // Battery protection mode
 
 // ACS712 current sensor calibration variables
-const float acs712VoltsPerAmp = 0.185; // 0.185 for 5A version, 100 for 20A, 66 for 30A
-const int acs712Offset = 508; // Zero offset is usually 512 = 1/2 of ADC range
+#if F_CPU == 16000000 // ACS712 5V supply: 
+const float acs712VoltsPerAmp = 0.185; // 0.185 for 5A version, 0.100 for 20A, 0.066 for 30A
+#endif
+#if F_CPU == 8000000 // ACS712 3.3V supply (outside datasheet range...): 
+const float acs712VoltsPerAmp = 0.1221; // 0.1221 for 5A version, 0.066 for 20A, 0.04356 for 30A
+#endif
+const int acs712Offset = 504; // Zero offset is usually 512 = 1/2 of ADC range
 
 
 float pwm; // float required for finer granularity during calculadion in differential equations!
